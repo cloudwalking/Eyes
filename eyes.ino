@@ -8,7 +8,7 @@
 #define LED_COUNT 32
 #define LED_BRIGHTNESS 60
 
-#define SENSITIVITY 1
+#define SENSITIVITY 5
 #define OFFSET 15
 
 #define BUTTON_PIN 10
@@ -16,7 +16,7 @@
 Adafruit_NeoPixel _pixels = Adafruit_NeoPixel(LED_COUNT, LED_DATA_PIN, NEO_GRB + NEO_KHZ800);
 LSM303 _compass;
 
-uint16_t _currentHeading = 999;
+uint16_t _currentHeading;
 
 ButtonState _mode;
 ButtonState _function;
@@ -32,6 +32,8 @@ void setup(void) {
   lightSetup();
   
   pinMode(BUTTON_PIN, INPUT);
+  
+  _currentHeading = 999;
   
   _mode = MODE_1;
   _function = FUNCTION_1;
@@ -49,6 +51,8 @@ void loop() {
   handleButton();
   
   updatePixels(heading);
+  
+  delay(20);
 }
 
 ////////////////////////////////////////////////////////
@@ -128,36 +132,46 @@ void changeFunction() {
 ///////////////////////////////////////////////////////
 
 void updatePixels(int heading) {
-  if (abs(_currentHeading - heading) > SENSITIVITY) {
-    _currentHeading = heading;
-
-    if (_mode == MODE_2) {
-      headlamp(heading);
-    } else {
-      rainbowCycle(heading);
-    }
+  if (_mode == MODE_2) {
+    headlamp(heading);
+  } else {
+    rainbowCycle(heading);
+  }
+  
+  if (_function == FUNCTION_2) {
+    sparkle();
   }
 }
 
+uint8_t pupil = 0;
 void headlamp(int heading) {
+  if (abs(_currentHeading - heading) > SENSITIVITY) {
+    _currentHeading = heading;
+
+    float pupil_f = LED_COUNT * heading / 360.0;
+    pupil = (uint8_t)pupil_f;
+  }
+  
   for (uint8_t led = 0; led < LED_COUNT; led++) {
     _pixels.setPixelColor(led, color(84));
   }
-  
-  float pupil_f = LED_COUNT * heading / 360.0;
-  uint8_t pupil = (uint8_t)pupil_f;
-  
+
   _pixels.setPixelColor(pupil, _pixels.Color(0,0,0));
   _pixels.setPixelColor(LED_COUNT - 1 - pupil, _pixels.Color(0,0,0));
       
   _pixels.show();
 }
 
+float leftRotation = 0.0, rightRotation = 0.0;
 void rainbowCycle(int heading) {
   int led;
   
-  float leftRotation = heading / 360.0 * 256;
-  float rightRotation = (heading + OFFSET) / 365.0 * 256;
+  if (abs(_currentHeading - heading) > SENSITIVITY) {
+    _currentHeading = heading;
+    
+    leftRotation = heading / 360.0 * 256;
+    rightRotation = (heading + OFFSET) / 365.0 * 256;
+  }
   
   // Serial.print(leftRotation);
   // Serial.print("\t");
@@ -178,6 +192,29 @@ void rainbowCycle(int heading) {
   }
 
   _pixels.show();
+}
+
+void sparkle() {
+  uint8_t count = (random() % 5) + 2; // 2 to 5 LEDs.
+
+  uint8_t chance;
+  uint32_t pixelColor;
+
+  if (_mode == MODE_1) {
+    chance = 20;
+    pixelColor = _pixels.Color(255,255,255);
+  } else {
+    chance = 100;
+    pixelColor = _pixels.Color(255,0,255);
+  }
+
+  if (random() % chance == 0) {
+    for (uint16_t i = 0; i < count; i++) {
+      uint16_t pixel = random() % LED_COUNT;
+      _pixels.setPixelColor(pixel, pixelColor);
+    }
+    _pixels.show();
+  }
 }
 
 // Input a value 0 to 255 to get a color value.
