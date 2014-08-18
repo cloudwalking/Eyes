@@ -160,7 +160,9 @@ void headlamp(int heading) {
   }
 
   _pixels.setPixelColor(pupil, _pixels.Color(0,0,0));
+  _pixels.setPixelColor(pupil + 1, _pixels.Color(0,0,0));
   _pixels.setPixelColor(LED_COUNT - 1 - pupil, _pixels.Color(0,0,0));
+  _pixels.setPixelColor(LED_COUNT - 2 - pupil, _pixels.Color(0,0,0));
       
   _pixels.show();
 }
