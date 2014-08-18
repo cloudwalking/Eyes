@@ -13,6 +13,9 @@
 
 #define BUTTON_PIN 10
 
+// Change each pixels color randomly up to this amount.
+#define COLOR_RANDOMNESS 15
+
 Adafruit_NeoPixel _pixels = Adafruit_NeoPixel(LED_COUNT, LED_DATA_PIN, NEO_GRB + NEO_KHZ800);
 LSM303 _compass;
 
@@ -180,7 +183,7 @@ void rainbowCycle(int heading) {
   
   for (led = 0; led < LED_COUNT / 2; led++) {
     byte leftColor = (int)leftRotation & 255;
-    _pixels.setPixelColor(led, color(leftColor));
+    _pixels.setPixelColor(led, colorNear(leftColor));
   }
 
   for(led = LED_COUNT / 2; led < LED_COUNT; led++) {
@@ -188,7 +191,7 @@ void rainbowCycle(int heading) {
     // byte position = ((led * 256 / strip.num_pixels()) + heading) & 255;
 
     byte rightColor = (int)rightRotation & 255;
-    _pixels.setPixelColor(led, color(rightColor));
+    _pixels.setPixelColor(led, colorNear(rightColor));
   }
 
   _pixels.show();
@@ -215,6 +218,20 @@ void sparkle() {
     }
     _pixels.show();
   }
+}
+
+// Random color close to the given color.
+uint32_t colorNear(byte position) {
+  // First choose above or below position
+  int8_t sign = 1;
+  if (random() % 2 == 0) {
+    sign = -1;
+  }
+  
+  // Difference from the given color
+  uint8_t change = sign * (random() % COLOR_RANDOMNESS);
+  
+  return color(position + change);
 }
 
 // Input a value 0 to 255 to get a color value.
