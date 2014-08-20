@@ -14,7 +14,10 @@
 #define BUTTON_PIN 10
 
 // Change each pixels color randomly up to this amount.
-#define COLOR_RANDOMNESS 15
+#define COLOR_RANDOMNESS 3
+
+#define RING_LEFT_ROTATION  0
+#define RING_RIGHT_ROTATION -2
 
 Adafruit_NeoPixel _pixels = Adafruit_NeoPixel(LED_COUNT, LED_DATA_PIN, NEO_GRB + NEO_KHZ800);
 LSM303 _compass;
@@ -146,28 +149,22 @@ void updatePixels(int heading) {
   }
 }
 
-uint8_t pupil = 0;
 void headlamp(int heading) {
   if (abs(_currentHeading - heading) > SENSITIVITY) {
     _currentHeading = heading;
-
-    float pupil_f = LED_COUNT * heading / 360.0;
-    pupil = (uint8_t)pupil_f;
   }
   
   for (uint8_t led = 0; led < LED_COUNT; led++) {
     _pixels.setPixelColor(led, color(84));
   }
 
-  _pixels.setPixelColor(pupil, _pixels.Color(0,0,0));
-  _pixels.setPixelColor(pupil + 1, _pixels.Color(0,0,0));
-  _pixels.setPixelColor(LED_COUNT - 1 - pupil, _pixels.Color(0,0,0));
-  _pixels.setPixelColor(LED_COUNT - 2 - pupil, _pixels.Color(0,0,0));
+  updatePupil(_currentHeading);
       
   _pixels.show();
 }
 
 float leftRotation = 0.0, rightRotation = 0.0;
+
 void rainbowCycle(int heading) {
   int led;
   
@@ -195,8 +192,48 @@ void rainbowCycle(int heading) {
     byte rightColor = (int)rightRotation & 255;
     _pixels.setPixelColor(led, colorNear(rightColor));
   }
+  
+  updatePupil(_currentHeading);
 
   _pixels.show();
+}
+
+uint8_t pupil = 0;
+
+void updatePupil(int heading) {
+  float pupil_f = round(LED_COUNT / 2) * heading / 360.0;
+  pupil = (uint8_t)pupil_f;
+  
+  Serial.print("pupil "); Serial.println(pupil);
+
+  int8_t left  = pupil + RING_LEFT_ROTATION;
+  left = constrainBetween(left, 0, LED_COUNT / 2);
+  Serial.print("left "); Serial.println(left);
+  _pixels.setPixelColor(left, _pixels.Color(0,0,0));
+
+  left += 1;
+  left = constrainBetween(left, 0, LED_COUNT / 2);
+  Serial.print("left+1 "); Serial.println(left);
+  _pixels.setPixelColor(left, _pixels.Color(0,0,0));
+  
+  int8_t right = pupil + RING_RIGHT_ROTATION + LED_COUNT / 2;
+  right = constrainBetween(right, LED_COUNT / 2, LED_COUNT);
+  Serial.print("right "); Serial.println(right);
+  _pixels.setPixelColor(right, _pixels.Color(0,0,0));
+  
+  right += 1;
+  right = constrainBetween(right, LED_COUNT / 2, LED_COUNT);
+  Serial.print("right+1 "); Serial.println(right);
+  _pixels.setPixelColor(right, _pixels.Color(0,0,0));
+}
+
+int constrainBetween(int value, int lower, int higher) {
+  if (value < lower) {
+    value = higher - (lower - value) + 1;
+  } else if (value > higher) {
+    value = lower + (value - higher) - 1;
+  }
+  return value;
 }
 
 void sparkle() {
@@ -231,7 +268,7 @@ uint32_t colorNear(byte position) {
   }
   
   // Difference from the given color
-  uint8_t change = sign * (random() % COLOR_RANDOMNESS);
+  uint8_t change = COLOR_RANDOMNESS ? sign * (random() % COLOR_RANDOMNESS) : 0;
   
   return color(position + change);
 }
