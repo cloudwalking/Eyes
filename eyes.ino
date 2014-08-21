@@ -17,7 +17,7 @@
 #define COLOR_RANDOMNESS 3
 
 #define RING_LEFT_ROTATION  0
-#define RING_RIGHT_ROTATION -2
+#define RING_RIGHT_ROTATION 2
 
 Adafruit_NeoPixel _pixels = Adafruit_NeoPixel(LED_COUNT, LED_DATA_PIN, NEO_GRB + NEO_KHZ800);
 LSM303 _compass;
@@ -202,29 +202,29 @@ uint8_t pupil = 0;
 
 void updatePupil(int heading) {
   float pupil_f = round(LED_COUNT / 2) * heading / 360.0;
-  pupil = (uint8_t)pupil_f;
-  
-  Serial.print("pupil "); Serial.println(pupil);
+  pupil = (int)pupil_f;
 
-  int8_t left  = pupil + RING_LEFT_ROTATION;
-  left = constrainBetween(left, 0, LED_COUNT / 2);
-  Serial.print("left "); Serial.println(left);
-  _pixels.setPixelColor(left, _pixels.Color(0,0,0));
+  int leftMin = 0, leftMax = floor(LED_COUNT / 2) - 1;
+  
+  int pupilColor = 0;
 
-  left += 1;
-  left = constrainBetween(left, 0, LED_COUNT / 2);
-  Serial.print("left+1 "); Serial.println(left);
-  _pixels.setPixelColor(left, _pixels.Color(0,0,0));
+  _pixels.setPixelColor(constrainBetween(pupil + RING_LEFT_ROTATION - 1, leftMin, leftMax),
+                        _pixels.Color(0,0,0));
+  _pixels.setPixelColor(constrainBetween(pupil + RING_LEFT_ROTATION, leftMin, leftMax),
+                        _pixels.Color(pupilColor,pupilColor,pupilColor));
+  _pixels.setPixelColor(constrainBetween(pupil + RING_LEFT_ROTATION + 1, leftMin, leftMax),
+                        _pixels.Color(0,0,0));
   
-  int8_t right = pupil + RING_RIGHT_ROTATION + LED_COUNT / 2;
-  right = constrainBetween(right, LED_COUNT / 2, LED_COUNT);
-  Serial.print("right "); Serial.println(right);
-  _pixels.setPixelColor(right, _pixels.Color(0,0,0));
+  int rightMin = leftMax + 1, rightMax = LED_COUNT - 1;
   
-  right += 1;
-  right = constrainBetween(right, LED_COUNT / 2, LED_COUNT);
-  Serial.print("right+1 "); Serial.println(right);
-  _pixels.setPixelColor(right, _pixels.Color(0,0,0));
+  pupil += rightMin;
+
+  _pixels.setPixelColor(constrainBetween(pupil + RING_RIGHT_ROTATION - 1, rightMin, rightMax),
+                        _pixels.Color(0,0,0));
+  _pixels.setPixelColor(constrainBetween(pupil + RING_RIGHT_ROTATION, rightMin, rightMax),
+                        _pixels.Color(pupilColor,pupilColor,pupilColor));
+  _pixels.setPixelColor(constrainBetween(pupil + RING_RIGHT_ROTATION + 1, rightMin, rightMax),
+                        _pixels.Color(0,0,0));
 }
 
 int constrainBetween(int value, int lower, int higher) {
